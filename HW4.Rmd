@@ -202,7 +202,7 @@ Glass_num[is.na(Glass_num)] = 0
 
 ```{r}
 #calculate correlation matrix using pearson correlation (others include spearman and kendall)
-correlation_matrix = cor(Glass_num[,1:9])
+correlation_matrix = cor(Glass_num[,1:10])
 
 #visualize correlation matrix
 library(corrplot)
@@ -214,7 +214,7 @@ highly_correlated <- colnames(Glass_num[, -1])[findCorrelation(correlation_matri
 #which features are highly correlated and can be removed
 highly_correlated
 
-#predicted: "Ba"
+#predicted: "Na"
 ```
 
 ```{r}
@@ -222,7 +222,7 @@ highly_correlated
 control = rfeControl(functions = caretFuncs, number = 2)
 
 # run the RFE algorithm
-results = rfe(Glass_num[,1:9], Glass_num[,9], sizes = c(1,3,5), rfeControl = control, method = "svmRadial")
+results = rfe(Glass_num[,1:9], Glass_num[,10], sizes = c(1,3,5), rfeControl = control, method = "svmRadial")
 
 #sizes (2,5,9)/(2,5,7) can try different numbers 
 
@@ -235,7 +235,7 @@ results$variables
 #list chosen features
 predictors(results)
 
-# predicted : "Fe"
+# Mg, Al, K, Na, Ba
 
 ```
  
@@ -243,9 +243,11 @@ predictors(results)
 
 ```{r}
 # stepwise backward regression
-results = step(lm(Glass_num[,1:9],data=Glass),direction="backward")
+results = step(lm(Glass_num[,1:9], Glass_num[,10],data=Glass),direction="backward")
 
 predictors(results)
+
+#"Na" "Mg" "Al" "Si" "K" 
 ```
 
 
