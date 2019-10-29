@@ -74,6 +74,9 @@ Wrapper methods are a bit more computationally intensive since we will select fe
 
 The RFE function implements backwards selection of predictors based on predictor importance ranking. The predictors are ranked and the less important ones are sequentially eliminated prior to modeling. The goal is to find a subset of predictors that can be used to produce an accurate model.
 
+making use of ml algorithms
+selects predictors based on importance yes
+
 ```{r RFE}
 data(BreastCancer)
 BreastCancer_num = transform(BreastCancer, Id = as.numeric(Id), 
@@ -95,8 +98,16 @@ control = rfeControl(functions = caretFuncs, number = 2)
 # run the RFE algorithm
 results = rfe(BreastCancer_num[,1:10], BreastCancer_num[,11], sizes = c(2,5,9), rfeControl = control, method = "svmRadial")
 
+#sizes (2,5,9)/(2,5,7) can try different numbers 
+
 results
 results$variables
+
+#visualized
+plot(results, type=c('g','o'))
+
+#list chosen features
+predictors(results)
 ```
 
 ## Feature Selection Using Embedded Methods: Lasso
@@ -107,14 +118,15 @@ Least Absolute Shrinkage and Selection Operator (LASSO) regression
 ```{r Lasso}
 set.seed(24)
 
-#convert data
-x = x <- as.matrix(BreastCancer_num[,1:10])
+#convert data to matrix 
+x = as.matrix(BreastCancer_num[,1:10])
 y = as.double(as.matrix(ifelse(BreastCancer_num[,11]=='benign', 0, 1))) 
 
 #fit Lasso model 
 cv.lasso <- cv.glmnet(x, y, family='binomial', alpha=1, parallel=TRUE, standardize=TRUE, type.measure='auc')
 
 plot(cv.lasso)
+#tells at which point accuracy decreases
 
 cat('Min Lambda: ', cv.lasso$lambda.min, '\n 1Sd Lambda: ', cv.lasso$lambda.1se)
 df_coef <- round(as.matrix(coef(cv.lasso, s=cv.lasso$lambda.min)), 2)
@@ -155,6 +167,7 @@ rfmodel = randomForest(Class ~ Id + Cl.thickness + Cell.size + Cell.shape + Marg
 
 #rank features based on importance 
 importance(rfmodel)
+#gives ranking for each feature
 
 ```
 
@@ -164,6 +177,75 @@ importance(rfmodel)
 
 1. Compare the most important features from at least 2 different classes of feature selection methods covered in this tutorial with any reasonable machine learning dataset from mlbench. Do these feature selection methods provide similar results? 
 
+```{r}
+#loading data 
+data(Glass)
+head(Glass)
+dim(Glass)
+
+```
+
+```{r}
+Glass_num = transform(Glass, RI = as.numeric(RI), 
+                         Na = as.numeric(Na),
+                         Mg = as.numeric(Mg),
+                         Al = as.numeric(Al), 
+                         Si = as.numeric(Si),
+                         K = as.numeric(K),
+                         Ca = as.numeric(Ca), 
+                         Ba = as.numeric(Ba), 
+                         Fe = as.numeric(Fe),
+                         Type = as.numeric(Type))
+
+Glass_num[is.na(Glass_num)] = 0
+```
+
+```{r}
+#calculate correlation matrix using pearson correlation (others include spearman and kendall)
+correlation_matrix = cor(Glass_num[,1:9])
+
+#visualize correlation matrix
+library(corrplot)
+corrplot(correlation_matrix, order = "hclust")
+
+#apply correlation filter of 0.7
+highly_correlated <- colnames(Glass_num[, -1])[findCorrelation(correlation_matrix, cutoff = 0.7, verbose = TRUE)]
+
+#which features are highly correlated and can be removed
+highly_correlated
+
+#predicted: "Ba"
+```
+
+```{r}
+#define the control 
+control = rfeControl(functions = caretFuncs, number = 2)
+
+# run the RFE algorithm
+results = rfe(Glass_num[,1:9], Glass_num[,9], sizes = c(1,3,5), rfeControl = control, method = "svmRadial")
+
+#sizes (2,5,9)/(2,5,7) can try different numbers 
+
+results
+results$variables
+
+#visualized
+# plot(results, type=c('g','o'))
+
+#list chosen features
+predictors(results)
+
+# predicted : "Fe"
+
+```
+ 
 2. Attempt a feature selection method not covered in this tutorial (backward elimination, forward propogation, etc.)
+
+```{r}
+# stepwise backward regression
+results = step(lm(Glass_num[,1:9],data=Glass),direction="backward")
+
+predictors(results)
+```
 
 
